@@ -15,7 +15,9 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', function () {
-    $response = "";
+
+    $response = null;
+
     return view('proxy', compact('response'));
 });
 

@@ -8,32 +8,36 @@ use Illuminate\Support\Facades\Http;
 class ProxyController extends Controller
 {
     public function __invoke(Request $request){
+        $url = $this->add_http($request->host);
 
-        $url = $this->remove_http($request->host);
-
-        if($request->host){
-
-            $result = parse_url($request->host);
+        if($url){
 
             $agent = 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1)';
 
+            $method = $_SERVER['REQUEST_METHOD'];
+//            $scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS']) ? 'https' : 'http';
+
+//            $url = $scheme.'://'. $_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'];
+//            dd($url);
+
+//            info("URL: " . $url);
+
             $curl = curl_init();
             curl_setopt_array($curl, array(
-                CURLOPT_URL => 'http://'.$url,
+                CURLOPT_URL => $url,
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_ENCODING => '',
                 CURLOPT_MAXREDIRS => 10,
                 CURLOPT_TIMEOUT => 0,
                 CURLOPT_FOLLOWLOCATION => true,
                 CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                CURLOPT_CUSTOMREQUEST => 'GET',
+                CURLOPT_CUSTOMREQUEST => $method,
                 CURLOPT_USERAGENT => $agent
             ));
 
             $response = curl_exec($curl);
 
             curl_close($curl);
-
 
             if(str_contains($url, '.js')){
                 return $response;
@@ -47,11 +51,18 @@ class ProxyController extends Controller
                 return  $response;
             }
 
-            $response = str_replace("host=/", "host=".'www.iana.org'.'/',$response);
-            $response = str_replace("src=\"/", "src=\"/proxy?host=".'$host'.'/',$response);
+            $result = parse_url($url);
+
+            $host = isset($result['host']) ? $result['host'] : '';
+
+//            $response = str_replace("host=/", "host=".$url.'/',$response);
+
+            $response = str_replace("href=\"/", "href=\"/proxy?host=".$host.'/',$response);
+            $response = str_replace("src=\"/", "src=\"/proxy?host=".$host.'/',$response);
             $response = str_replace("href=\"", "href=\"/proxy?host=",$response);
             $response = str_replace("href='", "href=\"/proxy?host=",$response);
 
+//            dd($response);
 
             return view('proxy', compact('response'));
 
